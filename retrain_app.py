@@ -7,7 +7,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import roc_auc_score
 import xgboost as xgb
-import joblib
+import joblib, io
 
 st.title("🔧 OralRisk AI — Model Trainer")
 
@@ -32,9 +32,7 @@ if st.button("Train Model Now"):
 
         X = df[features].apply(pd.to_numeric, errors='coerce').values
         y = df['diabetes'].values
-
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
         pipe = Pipeline([
             ('impute', SimpleImputer(strategy='median')),
@@ -44,9 +42,14 @@ if st.button("Train Model Now"):
         ])
         pipe.fit(X_train, y_train)
         auc = roc_auc_score(y_test, pipe.predict_proba(X_test)[:,1])
-
-        joblib.dump(pipe, 'oralrisk_model.pkl')
-        joblib.dump(features, 'oralrisk_features.pkl')
-
         st.success(f"✅ Done! AUC: {auc:.3f}")
-        st.balloons()
+
+        buf1 = io.BytesIO()
+        joblib.dump(pipe, buf1)
+        buf1.seek(0)
+        st.download_button("⬇️ Download oralrisk_model.pkl", buf1, "oralrisk_model.pkl")
+
+        buf2 = io.BytesIO()
+        joblib.dump(features, buf2)
+        buf2.seek(0)
+        st.download_button("⬇️ Download oralrisk_features.pkl", buf2, "oralrisk_features.pkl")
